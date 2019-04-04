@@ -4,5 +4,24 @@
 --- DateTime: 2019/4/4 17:22
 ---
 
-print("hello world123")
-print("push successful!!!")
+-- 可变参数演示
+function avg(...)
+    local s = 0
+    local ls = {...}
+    for i,v in ipairs(ls) do
+        s = s + v
+    end
+    return s/#ls
+end
+
+--table操作
+function showTable(t)
+    for k,v in ipairs(t) do
+        print(v)
+    end
+end
+
+
+m = require("module")
+
+m.submodule1.fun3()
