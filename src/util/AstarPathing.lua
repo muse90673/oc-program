@@ -3,7 +3,6 @@
 --- Created by ThinkPad E475.
 --- DateTime: 2019/4/15 11:15
 ---
-package.path = "obj\\?.lua;util\\?.lua"..package.path
 
 OpenList = require("obj.OpenList")
 CloseList = require("obj.CloseList")
