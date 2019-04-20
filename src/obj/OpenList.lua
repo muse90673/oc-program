@@ -3,10 +3,10 @@
 --- Created by ThinkPad E475.
 --- DateTime: 2019/4/15 0:36
 ---
-Object = require("obj.Object")
+
 PathNode = require("PathNode")
 
-OpenList = Object:new()
+OpenList = {}
 OpenList.__index = OpenList
 
 function OpenList:new()
@@ -48,7 +48,7 @@ end
 function OpenList:contains(pathNode)
     if not self:isEmpty() then
         for k,v in pairs(self.open) do
-            if v.x==pathNode.x and v.y==pathNode.y then
+            if v.x==pathNode.x and v.y==pathNode.y and v.z==pathNode.z then
                 return true
             end
         end

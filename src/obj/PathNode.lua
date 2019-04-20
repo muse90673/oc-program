@@ -3,16 +3,18 @@
 --- Created by ThinkPad E475.
 --- DateTime: 2019/4/15 0:25
 ---
-Object = require("obj.Object")
 
-PathNode = Object:new()
+PathNode = {}
 PathNode.__index = PathNode
 
-function PathNode:new(x,y,g,h,father)
+-- rot：节点当前朝向
+function PathNode:new(x,y,z,rot,g,h,father)
     local o = {}
     setmetatable(o, PathNode)
     o.x = x
     o.y = y
+    o.z = z
+    o.rot = rot
     o.g = g or 0
     o.h = h or 0
     o.f = o.g+o.h
@@ -31,4 +33,8 @@ function PathNode:setG(g)
     self.f = g+self.h
 end
 
+function PathNode:show()
+    return tostring(self.x)..","..tostring(self.y)..","..tostring(self.z)..", rot="..tostring(self.rot)..
+        ",g="..self.g
+end
 return PathNode

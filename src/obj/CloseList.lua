@@ -4,10 +4,9 @@
 --- DateTime: 2019/4/15 0:36
 ---
 
-Object = require("obj.Object")
 PathNode = require("PathNode")
 
-CloseList = Object:new()
+CloseList = {}
 CloseList.__index = CloseList
 
 function CloseList:new()
@@ -35,7 +34,7 @@ end
 function CloseList:contains(pathNode)
     if not self:isEmpty() then
         for k,v in pairs(self.close) do
-            if v.x==pathNode.x and v.y==pathNode.y then
+            if v.x==pathNode.x and v.y==pathNode.y and v.z==pathNode.z then
                 return true
             end
         end
