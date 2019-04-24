@@ -3,7 +3,7 @@
 --- Created by ThinkPad E475.
 --- DateTime: 2019/4/21 14:45
 ---
-robot = require("robot")
+
 thread = require("thread")
 event = require("event")
 comp = require("component")

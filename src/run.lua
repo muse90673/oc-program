@@ -4,6 +4,7 @@
 --- DateTime: 2019/4/24 10:46
 ---
 
-local robot = require("util.robot")
+package.path = "obj\\?.lua;util\\?.lua;"..package.path
+require("util.robot")
 
 scan()
