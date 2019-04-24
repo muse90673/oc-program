@@ -47,30 +47,25 @@ function Map:getChunk(x,y,z)
     local ck = self.chunk[tostring(x)..","..tostring(y)..","..tostring(z)]
     if ck then
         return ck
-    --else
-    --    ck = self:getChunkFromFile(x,y,z)
-    --    if ck then
-    --        -- 将地图块放进内存
-    --        self.chunk[tostring(x)..","..tostring(y)..","..tostring(z)]=ck
-    --        return ck
-    --    end
+    else
+        ck = self:getChunkFromFile(x,y,z)
+        if ck then
+            -- 将地图块放进内存
+            self.chunk[tostring(x)..","..tostring(y)..","..tostring(z)]=ck
+            return ck
+        end
     end
 end
 
 function Map:getChunkFromFile(x,y,z)
-    local list = fs.list("/mnt/")
-    local m = list()
-    while m do
-        local path = "/mnt/"..m.."mapdata/"..tostring(z).."/"..tostring(y).."/"..tostring(x)
-        if fs.exists(path) then
-            local s = ""
-            for line in io.lines(path) do
-                s = s..line
-            end
-            local ck = seri.unserialize(s)
-            return ck
+    local path = "/mapdata/"..tostring(z).."/"..tostring(y).."/"..tostring(x)
+    if fs.exists(path) then
+        local s = ""
+        for line in io.lines(path) do
+            s = s..line
         end
-        m = list()
+        local ck = seri.unserialize(s)
+        return ck
     end
     return nil
 end
@@ -79,28 +74,21 @@ function Map:hasChunk(x,y,z)
     if self.chunk[tostring(x)..","..tostring(y)..","..tostring(z)] then
         return true
     end
-    local list = fs.list("/mnt/")
-    local m = list()
-    while m do
-        local path = "/mnt/"..m.."mapdata/"..tostring(z).."/"..tostring(y).."/"..tostring(x)
-        if fs.exists(path) then
-            return true
-        end
-        m = list()
+    local path = "/mapdata/"..tostring(z).."/"..tostring(y).."/"..tostring(x)
+    if fs.exists(path) then
+        return true
     end
     return false
 end
 
 function Map:saveChunk(x,y,z,chunks)
-    local list = fs.list("/mnt/")
-    local m = list()
-
-    local path = "/mnt/"..m.."mapdata/"..tostring(z).."/"..tostring(y).."/"..tostring(x)
-    local f = io.open(path, "w")
+    local path = "/mapdata/"..tostring(z).."/"..tostring(y).."/"
+    fs.makeDirectory(path)
+    print("crate dir:"..path)
+    local f = io.open(path..tostring(x), "w")
     local ck = seri.serialize(chunks)
     f:write(ck)
     f:close()
-    return nil
 end
 
 return Map

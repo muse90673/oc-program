@@ -7,7 +7,7 @@
 thread = require("thread")
 event = require("event")
 comp = require("component")
-
+sides = require("sides")
 
 local status = ""
 --- size:
@@ -19,6 +19,17 @@ local status = ""
 --- curr_work:
 --- dx,dy,dz
 local workStatus = {}
+workStatus.size={}
+workStatus.size.ox=-5
+workStatus.size.oy=-5
+workStatus.size.oz=-5
+workStatus.size.lx=10
+workStatus.size.ly=10
+workStatus.size.lz=5
+
+workStatus.block={}
+workStatus.curr_work={}
+
 local map = require("obj.Map")
 local listenID
 local pathing = require("util.AstarPathing")
@@ -40,7 +51,7 @@ function work()
     --local is_continue = true
     -- 搜索下一个可挖掘方块
     while true do
-        local bi = pathing.getPosInfo(block.x,block.y,block.z)
+        local bi = map:getPosInfo(block.x,block.y,block.z)
         if bi then
             if bi == 1 then
                 break
@@ -70,53 +81,110 @@ function work()
 
     end
 
-    move()
-    -- 挖掘
+    local dirs = move(block.x,block.y,block.z)
+    --TODO 挖掘
+    if dirs=="front" then
+        comp.robot.swing(sides.front)
+    elseif dirs=="top" then
+        comp.robot.swing(sides.top)
+    elseif dirs=="down" then
+        comp.robot.swing(sides.down)
+    end
 end
 
 function nextBlock()
 
 end
 
-function move(x,y,z)
-    -- setmap x,y,z = 0
-    -- 获取路径 path.getpath()
-    -- 移动到该路径
-
+function move(dx,dy,dz)
+    local x,y,z = getLocation()
+    local dir = comp.navigation.getFacing()
+    local paths = pathing.getPath(map,dx,dy,dz,x,y,z,dir,true)
+    local dir_map = {[2]=1,[3]=3,[4]=2,[5]=0}
+    if paths then
+        local dst_block = paths[#paths]
+        local cx,cy,cz = x,y,z
+        local cdir = dir_map[dir]
+        for i=2,#paths do
+            local ddir
+            if paths[i].z-paths[i-1].z > 0 then
+                if i==#paths then
+                    return "top"
+                end
+                comp.robot.move(sides.top)
+            elseif paths[i].z-paths[i-1].z < 0 then
+                if i==#paths then
+                    return "down"
+                end
+                comp.robot.move(sides.down)
+            elseif paths[i].x-paths[i-1].x > 0 then
+                ddir = 0
+            elseif paths[i].x-paths[i-1].x < 0 then
+                ddir = 2
+            elseif paths[i].y-paths[i-1].y > 0 then
+                ddir = 1
+            elseif paths[i].y-paths[i-1].y < 0 then
+                ddir = 3
+            end
+            if ddir and cdir~=ddir then
+                local r1 = ddir-cdir
+                local r2 = r1%4
+                local minr
+                if math.abs(r1)<math.abs(r2) then
+                    minr = r1
+                else
+                    minr = r2
+                end
+                for j=1, math.abs(minr) do
+                    if minr>0 then
+                        comp.robot.turn(false)
+                    else
+                        comp.robot.turn(true)
+                    end
+                end
+                cdir = ddir
+                --TODO 探测前面的方块
+                if i~=#paths then
+                    comp.robot.move(sides.front)
+                end
+            end
+        end
+    end
+    return "front"
 end
 
 function scan()
-    -- 扫描以自身为中心范围内
-    -- 扫描过程：
-    --    先检查磁盘是否有地图
-    --    如果没有，则请求服务器
-    --    如果服务器没有，则扫描这块地图
-    -- 如果扫描失败，则尝试前往扫描
-    -- 不能扫描工作区域之外的地图
+    -- 扫描以自身为中心范围内的地形
     local x,y,z = getLocation()
-
+    print(x,y,z)
     local scanx,scany,scanz = x-32, y-32, z-32
     scanx = scanx-(scanx%-map.girdX)
     scany = scany-(scany%-map.girdY)
     scanz = scanz-(scanz%-map.girdZ)
+    -- 向上溢出的扫描高度，防止机器人无法从原点抵达工作区域
+    local ovfZ = 5
     for iy=scany, y+32-map.girdY, map.girdY do
         for ix=scanx, x+32-map.girdX, map.girdX do
             local flag = false
-            for iz=scanz, z+32-map.girdZ, map.girdZ do
-                local cx = ix/map.girdX
-                local cy = iy/map.girdY
-                local cz = iz/map.girdZ
-                if not map:hasChunk(cx,cy,cz) then
-                    flag = true
-                    break
+            if math.abs(ix-workStatus.size.ox+(map.girdX-workStatus.size.lx)/2) < ((map.girdX+workStatus.size.lx)/2) and
+                    math.abs(iy-workStatus.size.oy+(map.girdY-workStatus.size.ly)/2) < ((map.girdY+workStatus.size.ly)/2) then
+                for iz=scanz, z+32-map.girdZ, map.girdZ do
+                    local cx = ix/map.girdX
+                    local cy = iy/map.girdY
+                    local cz = iz/map.girdZ
+                    if not map:hasChunk(cx,cy,cz) then
+                        flag = true
+                        break
+                    end
+                    --print("ignore:"..tostring(ix)..","..tostring(iy)..","..tostring(iz))
                 end
             end
             if flag then
                 local datas = {}
                 for sy=iy,iy+map.girdY-1 do
                     for sx=ix,ix+map.girdX-1 do
-                        local data = comp.geolyzer.scan(sx-x,sy-y)
-                        print("scan:x="..tostring(sx-x)..",y="..tostring(sy-y))
+                        local data = comp.geolyzer.scan(sx-x,sy-y,false)
+                        --print("scan:x="..tostring(sx-x)..",y="..tostring(sy-y))
                         table.insert(datas,data)
                     end
                 end
@@ -124,12 +192,13 @@ function scan()
                     local cx = ix/map.girdX
                     local cy = iy/map.girdY
                     local cz = sz/map.girdZ
-                    if not map:hasChunk(cx,cy,cz) then
+                    if math.abs(sz-workStatus.size.oz+(map.girdZ-(workStatus.size.lz+ovfZ))/2) < ((map.girdZ+workStatus.size.lz+ovfZ)/2) and
+                            not map:hasChunk(cx,cy,cz) then
                         local chunk = {}
                         local index = 0
                         for jz=sz, sz+map.girdZ-1 do
                             for j=1, map.girdX*map.girdY do
-                                local info = datas[j][jz-z]
+                                local info = datas[j][jz-z+33]
                                 if info ~= 0 then
                                     chunk[index] = 1
                                 else
@@ -137,7 +206,7 @@ function scan()
                                 end
                                 index=index+1
                             end
-                            print("save:z="..tostring(jz-z))
+                            print("save:z="..tostring(jz-z+33))
                         end
                         map:saveChunk(cx,cy,cz,chunk)
                     end
@@ -145,7 +214,6 @@ function scan()
             end
         end
     end
-
 end
 
 function back()
@@ -155,10 +223,10 @@ end
 function getLocation()
     local wp = comp.navigation.findWaypoints(512)
     for k,v in pairs(wp) do
-        if v["label"] == "origin" then
+        if type(v)=="table" and v["label"] == "origin" then
             local x = -v["position"][1]
-            local y = -v["position"][2]
-            local z = -v["position"][3]
+            local z = -v["position"][2]
+            local y = -v["position"][3]
             return x,y,z
         end
     end

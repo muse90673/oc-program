@@ -7,4 +7,4 @@
 package.path = "obj\\?.lua;util\\?.lua;"..package.path
 require("util.robot")
 
-scan()
+print(move(5,-1,0))

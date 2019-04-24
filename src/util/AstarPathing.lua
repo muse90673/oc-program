@@ -28,7 +28,7 @@ Astar.closeList = nil
 -- ox,oy,oz:起点坐标
 -- dx,dy,dz:终点坐标
 -- dir:方向
-function Astar.getPath(map,ox,oy,oz,dx,dy,dz,dir)
+function Astar.getPath(map,ox,oy,oz,dx,dy,dz,dir,reverse)
     -- init
     Astar.map = map
     Astar.openList = OpenList:new()
@@ -58,6 +58,9 @@ function Astar.getPath(map,ox,oy,oz,dx,dy,dz,dir)
                     while currNote do
                         table.insert(tempPathList, currNote)
                         currNote = currNote.father
+                    end
+                    if reverse then
+                        return tempPathList
                     end
                     for i=#tempPathList,1,-1 do
                         table.insert(pathList, tempPathList[i])
