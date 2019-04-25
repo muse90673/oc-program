@@ -55,6 +55,7 @@ function Map:getChunk(x,y,z)
             return ck
         end
     end
+    return nil
 end
 
 function Map:getChunkFromFile(x,y,z)

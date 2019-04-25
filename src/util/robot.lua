@@ -100,6 +100,7 @@ function move(dx,dy,dz)
     local x,y,z = getLocation()
     local dir = comp.navigation.getFacing()
     local paths = pathing.getPath(map,dx,dy,dz,x,y,z,dir,true)
+    print("paths=",paths)
     local dir_map = {[2]=1,[3]=3,[4]=2,[5]=0}
     if paths then
         local dst_block = paths[#paths]
@@ -197,7 +198,7 @@ function scan()
                         local chunk = {}
                         local index = 0
                         for jz=sz, sz+map.girdZ-1 do
-                            for j=1, map.girdX*map.girdY do
+                            for j=1, #datas do
                                 local info = datas[j][jz-z+33]
                                 if info ~= 0 then
                                     chunk[index] = 1
