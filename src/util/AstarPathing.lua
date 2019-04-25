@@ -83,7 +83,7 @@ end
 
 -- 获取某坐标位置的数据
 function Astar.getPosInfo(x,y,z)
-    return map:getPosInfo(x,y,z)
+    return Astar.map:getPosInfo(x,y,z)
 end
 
 function Astar.calcH(x,y,z,dx,dy,dz)
@@ -184,7 +184,7 @@ function Astar.printMap(pathList,sizex,sizey,sizez)
 end
 
 function Astar.setMapData(x,y,z,data)
-    map:setPosInfo(x,y,z,data)
+    Astar.map:setPosInfo(x,y,z,data)
 end
 
 return Astar
