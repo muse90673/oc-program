@@ -111,18 +111,16 @@ function move(dx,dy,dz)
             local ddir
             if paths[i].z-paths[i-1].z > 0 then
                 comp.robot.move(sides.top)
-                return "top"
             elseif paths[i].z-paths[i-1].z < 0 then
                 comp.robot.move(sides.down)
-                return "down"
             elseif paths[i].x-paths[i-1].x > 0 then
                 ddir = 0
             elseif paths[i].x-paths[i-1].x < 0 then
                 ddir = 2
             elseif paths[i].y-paths[i-1].y > 0 then
-                ddir = 1
-            elseif paths[i].y-paths[i-1].y < 0 then
                 ddir = 3
+            elseif paths[i].y-paths[i-1].y < 0 then
+                ddir = 1
             end
             if ddir then
                 local r1 = math.abs(ddir-cdir)
@@ -133,7 +131,7 @@ function move(dx,dy,dz)
                     clockwish = true
                 end
                 for j=1, min do
-                    comp.robot.turn(true)
+                    comp.robot.turn(clockwish)
                 end
                 cdir = ddir
                 --TODO 探测前面的方块
