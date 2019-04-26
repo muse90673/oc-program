@@ -101,24 +101,20 @@ function move(dx,dy,dz)
     map:setPosInfo(x,y,z,0)
     print("posinfo=", map:getPosInfo(x,y,z))
     local paths = pathing.getPath(map,dx,dy,dz,x,y,z,dir,true)
-    print("paths=",paths)
+    for k,v in ipairs(paths) do
+        print(v.x, v.y, v.z)
+    end
     local dir_map = {[2]=1,[3]=3,[4]=2,[5]=0}
     if paths then
-        local dst_block = paths[#paths]
-        local cx,cy,cz = x,y,z
         local cdir = dir_map[dir]
         for i=2,#paths do
             local ddir
             if paths[i].z-paths[i-1].z > 0 then
-                if i==#paths then
-                    return "top"
-                end
                 comp.robot.move(sides.top)
+                return "top"
             elseif paths[i].z-paths[i-1].z < 0 then
-                if i==#paths then
-                    return "down"
-                end
                 comp.robot.move(sides.down)
+                return "down"
             elseif paths[i].x-paths[i-1].x > 0 then
                 ddir = 0
             elseif paths[i].x-paths[i-1].x < 0 then
@@ -128,27 +124,21 @@ function move(dx,dy,dz)
             elseif paths[i].y-paths[i-1].y < 0 then
                 ddir = 3
             end
-            if ddir and cdir~=ddir then
-                local r1 = ddir-cdir
-                local r2 = r1%4
-                local minr
-                if math.abs(r1)<math.abs(r2) then
-                    minr = r1
-                else
-                    minr = r2
+            if ddir then
+                local r1 = math.abs(ddir-cdir)
+                local r2 = 4-r1
+                local min = math.min(r1,r2)
+                local clockwish = false
+                if (cdir-min)%4==ddir then
+                    clockwish = true
                 end
-                for j=1, math.abs(minr) do
-                    if minr>0 then
-                        comp.robot.turn(false)
-                    else
-                        comp.robot.turn(true)
-                    end
+                for j=1, min do
+                    comp.robot.turn(true)
                 end
                 cdir = ddir
                 --TODO 探测前面的方块
-                if i~=#paths then
-                    comp.robot.move(sides.front)
-                end
+
+                comp.robot.move(sides.front)
             end
         end
     end
