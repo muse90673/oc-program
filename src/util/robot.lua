@@ -82,7 +82,6 @@ function work()
     end
 
     local dirs = move(block.x,block.y,block.z)
-    --TODO 挖掘
     if dirs=="front" then
         comp.robot.swing(sides.front)
     elseif dirs=="top" then
@@ -99,6 +98,8 @@ end
 function move(dx,dy,dz)
     local x,y,z = getLocation()
     local dir = comp.navigation.getFacing()
+    map:setPosInfo(x,y,z,0)
+    print("posinfo=", map:getPosInfo(x,y,z))
     local paths = pathing.getPath(map,dx,dy,dz,x,y,z,dir,true)
     print("paths=",paths)
     local dir_map = {[2]=1,[3]=3,[4]=2,[5]=0}

@@ -43,15 +43,14 @@ function Map:getChunk(x,y,z)
     -- 如果没有则查找磁盘
     -- 如果没有则请求服务器
     -- 如果服务器没有，则在map里记录这块地图不存在，寻路结束后清除记录
-
-    local ck = self.chunk[tostring(x)..","..tostring(y)..","..tostring(z)]
+    local ck = self.chunk[tostring(x+0)..","..tostring(y+0)..","..tostring(z+0)]
     if ck then
         return ck
     else
         ck = self:getChunkFromFile(x,y,z)
         if ck then
             -- 将地图块放进内存
-            self.chunk[tostring(x)..","..tostring(y)..","..tostring(z)]=ck
+            self.chunk[tostring(x+0)..","..tostring(y+0)..","..tostring(z+0)]=ck
             return ck
         end
     end
@@ -59,7 +58,7 @@ function Map:getChunk(x,y,z)
 end
 
 function Map:getChunkFromFile(x,y,z)
-    local path = "/mapdata/"..tostring(z).."/"..tostring(y).."/"..tostring(x)
+    local path = "/mapdata/"..tostring(z+0).."/"..tostring(y+0).."/"..tostring(x+0)
     if fs.exists(path) then
         local s = ""
         for line in io.lines(path) do
@@ -72,10 +71,10 @@ function Map:getChunkFromFile(x,y,z)
 end
 
 function Map:hasChunk(x,y,z)
-    if self.chunk[tostring(x)..","..tostring(y)..","..tostring(z)] then
+    if self.chunk[tostring(x+0)..","..tostring(y+0)..","..tostring(z+0)] then
         return true
     end
-    local path = "/mapdata/"..tostring(z).."/"..tostring(y).."/"..tostring(x)
+    local path = "/mapdata/"..tostring(z+0).."/"..tostring(y+0).."/"..tostring(x+0)
     if fs.exists(path) then
         return true
     end
@@ -83,10 +82,10 @@ function Map:hasChunk(x,y,z)
 end
 
 function Map:saveChunk(x,y,z,chunks)
-    local path = "/mapdata/"..tostring(z).."/"..tostring(y).."/"
+    local path = "/mapdata/"..tostring(z+0).."/"..tostring(y+0).."/"
     fs.makeDirectory(path)
     print("crate dir:"..path)
-    local f = io.open(path..tostring(x), "w")
+    local f = io.open(path..tostring(x+0), "w")
     local ck = seri.serialize(chunks)
     f:write(ck)
     f:close()
