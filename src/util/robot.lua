@@ -10,6 +10,7 @@ comp = require("component")
 sides = require("sides")
 
 local status = ""
+
 --- size:
 --- ox,lx
 --- oy,ly
@@ -18,6 +19,8 @@ local status = ""
 --- x,y,z
 --- curr_work:
 --- dx,dy,dz
+--- curr_pos:
+--- x,y,z
 local workStatus = {}
 workStatus.size={}
 workStatus.size.ox=-5
@@ -46,7 +49,7 @@ function work()
         curr_work.dx = 1
         curr_work.dy = 1
         curr_work.dz = -1
-        curr_work.cx, curr_work.cy, curr_work.cz = 0
+        curr_work.cx, curr_work.cy, curr_work.cz = 0,0,0
     end
     --local is_continue = true
     -- 搜索下一个可挖掘方块
@@ -56,15 +59,15 @@ function work()
             if bi == 1 then
                 break
             end
-            if curr_work.cz == wsize.lz then
+            if curr_work.cz == wsize.lz-1 then
                 curr_work.dz = curr_work.dz*-1
                 -- 工作区域内所有方块被挖完
-            elseif curr_work.cy == wsize.ly then
+            elseif curr_work.cy == wsize.ly-1 then
                 block.z = block.z + curr_work.dz
                 curr_work.cz = curr_work.cz + 1
                 curr_work.dy = curr_work.dy*-1
                 curr_work.cy = 0
-            elseif curr_work.cx == wsize.lx then
+            elseif curr_work.cx == wsize.lx-1 then
                 block.y = block.y + curr_work.dy
                 curr_work.cy = curr_work.cy + 1
                 curr_work.dx = curr_work.dx*-1
@@ -82,65 +85,79 @@ function work()
     end
 
     local dirs = move(block.x,block.y,block.z)
-    if dirs=="front" then
-        comp.robot.swing(sides.front)
-    elseif dirs=="top" then
-        comp.robot.swing(sides.top)
-    elseif dirs=="down" then
-        comp.robot.swing(sides.down)
+    if dirs then
+        -- 判断机器人现在坐标是否和终点重合，如果重合则获取下一个可挖掘方块
+        -- 探测前面的方块
+        if isExcavable(dirs) then
+            comp.robot.swing(dirs)
+        end
     end
 end
 
-function nextBlock()
-
-end
-
+---
+--- 机器人移动
+--- 参数dx,dy,dz: 终点坐标
+--- 返回值：sides {front, top, down}
+---        如果起点终点重合，返回nil
+---
 function move(dx,dy,dz)
     local x,y,z = getLocation()
-    local dir = comp.navigation.getFacing()
-    map:setPosInfo(x,y,z,0)
-    print("posinfo=", map:getPosInfo(x,y,z))
-    local paths = pathing.getPath(map,dx,dy,dz,x,y,z,dir,true)
-    for k,v in ipairs(paths) do
-        print(v.x, v.y, v.z)
-    end
-    local dir_map = {[2]=1,[3]=3,[4]=2,[5]=0}
-    if paths then
-        local cdir = dir_map[dir]
-        for i=2,#paths do
-            local ddir
-            if paths[i].z-paths[i-1].z > 0 then
-                comp.robot.move(sides.top)
-            elseif paths[i].z-paths[i-1].z < 0 then
-                comp.robot.move(sides.down)
-            elseif paths[i].x-paths[i-1].x > 0 then
-                ddir = 0
-            elseif paths[i].x-paths[i-1].x < 0 then
-                ddir = 2
-            elseif paths[i].y-paths[i-1].y > 0 then
-                ddir = 3
-            elseif paths[i].y-paths[i-1].y < 0 then
-                ddir = 1
-            end
-            if ddir then
-                local r1 = math.abs(ddir-cdir)
-                local r2 = 4-r1
-                local min = math.min(r1,r2)
-                local clockwish = false
-                if (cdir-min)%4==ddir then
-                    clockwish = true
+    if x==dx and y==dy and z==dz then
+        local dir = comp.navigation.getFacing()
+        if map:setPosInfo(x,y,z,0) then
+            return nil
+        end
+        local paths = pathing.getPath(map,dx,dy,dz,x,y,z,dir,true)
+        local dir_map = {[2]=1,[3]=3,[4]=2,[5]=0}
+        if paths then
+            local cdir = dir_map[dir]
+            for i=2,#paths do
+                local ddir
+                local binfo
+                local curr_sides
+                if paths[i].z-paths[i-1].z > 0 then
+                    curr_sides = sides.top
+                    _,binfo = comp.robot.move(curr_sides)
+                elseif paths[i].z-paths[i-1].z < 0 then
+                    curr_sides = sides.down
+                    _,binfo = comp.robot.move(curr_sides)
+                elseif paths[i].x-paths[i-1].x > 0 then
+                    ddir = 0
+                elseif paths[i].x-paths[i-1].x < 0 then
+                    ddir = 2
+                elseif paths[i].y-paths[i-1].y > 0 then
+                    ddir = 3
+                elseif paths[i].y-paths[i-1].y < 0 then
+                    ddir = 1
                 end
-                for j=1, min do
-                    comp.robot.turn(clockwish)
+                if ddir then
+                    local r1 = math.abs(ddir-cdir)
+                    local r2 = 4-r1
+                    local min = math.min(r1,r2)
+                    local clockwish = false
+                    if (cdir-min)%4==ddir then
+                        clockwish = true
+                    end
+                    for j=1, min do
+                        comp.robot.turn(clockwish)
+                    end
+                    cdir = ddir
+                    curr_sides = sides.front
+                    _,binfo = comp.robot.move(curr_sides)
                 end
-                cdir = ddir
-                --TODO 探测前面的方块
-
-                comp.robot.move(sides.front)
+                if i==#paths then
+                    return curr_sides
+                end
+                -- 如果被挡路，尝试挖掉方块,失败则绕路
+                if binfo then
+                    if isExcavable(binfo) then
+                        comp.robot.swing(curr_sides)
+                    end
+                end
             end
         end
     end
-    return "front"
+    return nil
 end
 
 function scan()
@@ -224,6 +241,29 @@ function getLocation()
     return nil
 end
 
+---
+--- 探测方块能否被挖掘
+--- dir:sides {front, top, down}
+--- 返回值：boolean true:可挖掘 false:不可挖掘
+---
+function isExcavable(dir)
+    local binfo = comp.geolyzer.analyze(dir)
+    if binfo then
+        local hardness = binfo["hardness"]
+        local harvest_tool = binfo["harvestTool"]
+        if hardness<10 then
+            if harvest_tool then
+                if harvest_tool == "shovel" or harvest_tool == "shovel" then
+                    return true
+                end
+            else
+                return true
+            end
+        end
+    end
+    return false
+end
+
 function receiveMessage(a,b,c,d,e,order)
     status = order
 end
@@ -233,8 +273,8 @@ function printStatus()
 end
 
 function run()
-    --listenID = event.listen("modem_message",receiveMessage)
-
+    listen_id = event.listen("modem_message",receiveMessage)
+    status = "work"
     while true do
         if status=="work" then
             work()
@@ -245,5 +285,5 @@ function run()
         end
         os.sleep(0)
     end
-    event.cancel(listenID)
+    event.cancel(listen_id)
 end
