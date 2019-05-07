@@ -33,6 +33,7 @@ function Map:setPosInfo(x,y,z,info)
     local map = self:getChunk(cx,cy,cz)
     if map then
         map[(x-cx*self.girdX)+(y-cy*self.girdY)*self.girdX+(z-cz*self.girdZ)*self.girdX*self.girdY]=info
+        return true
     else
         return false
     end

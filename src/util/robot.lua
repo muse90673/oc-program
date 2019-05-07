@@ -119,10 +119,8 @@ function move(dx,dy,dz)
             local curr_sides
             if paths[i].z-paths[i-1].z > 0 then
                 curr_sides = sides.top
-                _,binfo = comp.robot.move(curr_sides)
             elseif paths[i].z-paths[i-1].z < 0 then
                 curr_sides = sides.down
-                _,binfo = comp.robot.move(curr_sides)
             elseif paths[i].x-paths[i-1].x > 0 then
                 ddir = 0
             elseif paths[i].x-paths[i-1].x < 0 then
@@ -145,15 +143,16 @@ function move(dx,dy,dz)
                 end
                 cdir = ddir
                 curr_sides = sides.front
-                _,binfo = comp.robot.move(curr_sides)
             end
+            _,binfo = comp.robot.move(curr_sides)
             if i==#paths then
                 return curr_sides
             end
             -- 如果被挡路，尝试挖掉方块,失败则绕路
             if binfo then
-                if isExcavable(binfo) then
+                if isExcavable(curr_sides) then
                     comp.robot.swing(curr_sides)
+                    comp.robot.move(curr_sides)
                 end
             end
         end
@@ -254,7 +253,7 @@ function isExcavable(dir)
         local harvest_tool = binfo["harvestTool"]
         if hardness<10 then
             if harvest_tool then
-                if harvest_tool == "shovel" or harvest_tool == "shovel" then
+                if harvest_tool == "pickaxe" or harvest_tool == "shovel" then
                     return true
                 end
             else
