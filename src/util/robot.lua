@@ -103,56 +103,57 @@ end
 function move(dx,dy,dz)
     local x,y,z = getLocation()
     if x==dx and y==dy and z==dz then
-        local dir = comp.navigation.getFacing()
-        if map:setPosInfo(x,y,z,0) then
-            return nil
-        end
-        local paths = pathing.getPath(map,dx,dy,dz,x,y,z,dir,true)
-        local dir_map = {[2]=1,[3]=3,[4]=2,[5]=0}
-        if paths then
-            local cdir = dir_map[dir]
-            for i=2,#paths do
-                local ddir
-                local binfo
-                local curr_sides
-                if paths[i].z-paths[i-1].z > 0 then
-                    curr_sides = sides.top
-                    _,binfo = comp.robot.move(curr_sides)
-                elseif paths[i].z-paths[i-1].z < 0 then
-                    curr_sides = sides.down
-                    _,binfo = comp.robot.move(curr_sides)
-                elseif paths[i].x-paths[i-1].x > 0 then
-                    ddir = 0
-                elseif paths[i].x-paths[i-1].x < 0 then
-                    ddir = 2
-                elseif paths[i].y-paths[i-1].y > 0 then
-                    ddir = 3
-                elseif paths[i].y-paths[i-1].y < 0 then
-                    ddir = 1
+        return nil
+    end
+    local dir = comp.navigation.getFacing()
+    if not map:setPosInfo(x,y,z,0) then
+        return nil
+    end
+    local paths = pathing.getPath(map,dx,dy,dz,x,y,z,dir,true)
+    local dir_map = {[2]=1,[3]=3,[4]=2,[5]=0}
+    if paths then
+        local cdir = dir_map[dir]
+        for i=2,#paths do
+            local ddir
+            local binfo
+            local curr_sides
+            if paths[i].z-paths[i-1].z > 0 then
+                curr_sides = sides.top
+                _,binfo = comp.robot.move(curr_sides)
+            elseif paths[i].z-paths[i-1].z < 0 then
+                curr_sides = sides.down
+                _,binfo = comp.robot.move(curr_sides)
+            elseif paths[i].x-paths[i-1].x > 0 then
+                ddir = 0
+            elseif paths[i].x-paths[i-1].x < 0 then
+                ddir = 2
+            elseif paths[i].y-paths[i-1].y > 0 then
+                ddir = 3
+            elseif paths[i].y-paths[i-1].y < 0 then
+                ddir = 1
+            end
+            if ddir then
+                local r1 = math.abs(ddir-cdir)
+                local r2 = 4-r1
+                local min = math.min(r1,r2)
+                local clockwish = false
+                if (cdir-min)%4==ddir then
+                    clockwish = true
                 end
-                if ddir then
-                    local r1 = math.abs(ddir-cdir)
-                    local r2 = 4-r1
-                    local min = math.min(r1,r2)
-                    local clockwish = false
-                    if (cdir-min)%4==ddir then
-                        clockwish = true
-                    end
-                    for j=1, min do
-                        comp.robot.turn(clockwish)
-                    end
-                    cdir = ddir
-                    curr_sides = sides.front
-                    _,binfo = comp.robot.move(curr_sides)
+                for j=1, min do
+                    comp.robot.turn(clockwish)
                 end
-                if i==#paths then
-                    return curr_sides
-                end
-                -- 如果被挡路，尝试挖掉方块,失败则绕路
-                if binfo then
-                    if isExcavable(binfo) then
-                        comp.robot.swing(curr_sides)
-                    end
+                cdir = ddir
+                curr_sides = sides.front
+                _,binfo = comp.robot.move(curr_sides)
+            end
+            if i==#paths then
+                return curr_sides
+            end
+            -- 如果被挡路，尝试挖掉方块,失败则绕路
+            if binfo then
+                if isExcavable(binfo) then
+                    comp.robot.swing(curr_sides)
                 end
             end
         end
