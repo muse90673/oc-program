@@ -48,6 +48,7 @@ function work()
         if dir then
             if isExcavable(dir) then
                 comp.robot.swing(dir)
+                map:setPosInfo(x,y,z,0)
             end
         end
     end
@@ -111,6 +112,7 @@ function move(dx,dy,dz)
             if binfo then
                 if binfo ~= "entity" and isExcavable(curr_sides) then
                     comp.robot.swing(curr_sides)
+                    map:setPosInfo(paths[i].x,paths[i].y,paths[i].z,0)
                     comp.robot.move(curr_sides)
                 else
                     -- 绕路
@@ -208,7 +210,7 @@ function getNextBlock()
     if not block.x then
         block.x = wsize.ox
         block.y = wsize.oy
-        block.z = 0
+        block.z = -1
         curr_work.dx = 1
         curr_work.dy = 1
         curr_work.dz = -1
