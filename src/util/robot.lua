@@ -217,36 +217,33 @@ function getNextBlock()
     end
     -- 搜索下一个可挖掘方块
     while flag do
+        if curr_work.cz == wsize.lz+1 and curr_work.cy == wsize.ly and curr_work.cx == wsize.lx then
+            -- 工作区域内所有方块被挖完
+            break
+        elseif curr_work.cy == wsize.ly and curr_work.cx == wsize.lx then
+            block.z = block.z + curr_work.dz
+            curr_work.cz = curr_work.cz + 1
+            curr_work.dy = curr_work.dy*-1
+            curr_work.cy = 1
+            curr_work.cx = 1
+        elseif curr_work.cx == wsize.lx then
+            block.y = block.y + curr_work.dy
+            curr_work.cy = curr_work.cy + 1
+            curr_work.dx = curr_work.dx*-1
+            curr_work.cx = 1
+        else
+            block.x = block.x + curr_work.dx
+            curr_work.cx = curr_work.cx + 1
+        end
         local bi = map:getPosInfo(block.x,block.y,block.z)
-        --local bi = 1
-        if bi then
-            if curr_work.cz == wsize.lz+1 and curr_work.cy == wsize.ly and curr_work.cx == wsize.lx then
-                -- 工作区域内所有方块被挖完
-                return false
-            elseif curr_work.cy == wsize.ly and curr_work.cx == wsize.lx then
-                block.z = block.z + curr_work.dz
-                curr_work.cz = curr_work.cz + 1
-                curr_work.dy = curr_work.dy*-1
-                curr_work.cy = 1
-                curr_work.cx = 1
-            elseif curr_work.cx == wsize.lx then
-                block.y = block.y + curr_work.dy
-                curr_work.cy = curr_work.cy + 1
-                curr_work.dx = curr_work.dx*-1
-                curr_work.cx = 1
-            else
-                block.x = block.x + curr_work.dx
-                curr_work.cx = curr_work.cx + 1
-            end
-            if bi == 1 then
-                break
-            end
+        if bi and bi == 1 then
+            return true, block.x, block.y, block.z
         else
             -- error
             break
         end
     end
-    return true, block.x, block.y, block.z
+    return false
 end
 
 function getLocation()
