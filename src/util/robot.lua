@@ -60,28 +60,6 @@ end
 ---        如果起点终点重合，返回nil
 ---
 function move(dx,dy,dz)
-
-    local flag,side = pcall(_move,dx,dy,dz)
-    if flag then
-        return side
-    else
-        if string.find(side,"request scan") then
-            -- 扫描地形
-            --local pos
-            --local oz = workStatus.block.z+1
-            --local sx,sy =
-            --for i=1,31 do
-            --    map:getPosInfo()
-            --end
-            print(side)
-        else
-            print(side)
-        end
-        return nil
-    end
-end
-
-function _move(dx,dy,dz)
     local x,y,z = getLocation()
     if x==dx and y==dy and z==dz then
         return nil
@@ -240,6 +218,7 @@ function getNextBlock()
     -- 搜索下一个可挖掘方块
     while flag do
         local bi = map:getPosInfo(block.x,block.y,block.z)
+        --local bi = 1
         if bi then
             if curr_work.cz == wsize.lz+1 and curr_work.cy == wsize.ly and curr_work.cx == wsize.lx then
                 -- 工作区域内所有方块被挖完
