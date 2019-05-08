@@ -12,15 +12,15 @@ sides = require("sides")
 local status = ""
 
 --- size:
---- ox,lx
---- oy,ly
---- oz,lz
+---   ox,lx
+---   oy,ly
+---   oz,lz
 --- block:
---- x,y,z
+---   x,y,z
 --- curr_work:
---- dx,dy,dz
+---   dx,dy,dz
 --- curr_pos:
---- x,y,z
+---   x,y,z
 local workStatus = {}
 workStatus.size={}
 workStatus.size.ox=-5
@@ -33,61 +33,17 @@ workStatus.size.lz=5
 workStatus.block={}
 workStatus.curr_work={}
 
+--- 记录临时障碍物
+local temp_block_list = {}
+
 local map = require("obj.Map")
 local listenID
 local pathing = require("util.AstarPathing")
 
 function work()
-    local block = workStatus.block
-    local wsize = workStatus.size
-    local curr_work = workStatus.curr_work
-
-    if block then
-        block.x = wsize.ox
-        block.y = wsize.oy
-        block.z = wsize.oz
-        curr_work.dx = 1
-        curr_work.dy = 1
-        curr_work.dz = -1
-        curr_work.cx, curr_work.cy, curr_work.cz = 0,0,0
-    end
-    --local is_continue = true
-    -- 搜索下一个可挖掘方块
-    while true do
-        local bi = map:getPosInfo(block.x,block.y,block.z)
-        if bi then
-            if bi == 1 then
-                break
-            end
-            if curr_work.cz == wsize.lz-1 then
-                curr_work.dz = curr_work.dz*-1
-                -- 工作区域内所有方块被挖完
-            elseif curr_work.cy == wsize.ly-1 then
-                block.z = block.z + curr_work.dz
-                curr_work.cz = curr_work.cz + 1
-                curr_work.dy = curr_work.dy*-1
-                curr_work.cy = 0
-            elseif curr_work.cx == wsize.lx-1 then
-                block.y = block.y + curr_work.dy
-                curr_work.cy = curr_work.cy + 1
-                curr_work.dx = curr_work.dx*-1
-                curr_work.cx = 0
-            else
-                block.x = block.x + curr_work.dx
-                curr_work.cx = curr_work.cx + 1
-            end
-
-        else
-            -- error
-            break
-        end
-
-    end
-
-    local dirs = move(block.x,block.y,block.z)
+    local x,y,z = getNextBlock()
+    local dirs = move(x,y,z)
     if dirs then
-        -- 判断机器人现在坐标是否和终点重合，如果重合则获取下一个可挖掘方块
-        -- 探测前面的方块
         if isExcavable(dirs) then
             comp.robot.swing(dirs)
         end
@@ -150,9 +106,15 @@ function move(dx,dy,dz)
             end
             -- 如果被挡路，尝试挖掉方块,失败则绕路
             if binfo then
-                if isExcavable(curr_sides) then
+                if binfo ~= "entity" and isExcavable(curr_sides) then
                     comp.robot.swing(curr_sides)
                     comp.robot.move(curr_sides)
+                else
+                    -- 绕路
+                    setTempBlock(paths[i].x,paths[i].y,paths[i].z)
+                    curr_sides = move(dx,dy,dz)
+                    clearTempBlock()
+                    return curr_sides
                 end
             end
         end
@@ -227,6 +189,57 @@ function back()
 
 end
 
+---
+--- 获取下一个可挖掘的方块
+--- 返回值：x,y,z 方块坐标
+---
+function getNextBlock()
+    local block = workStatus.block
+    local wsize = workStatus.size
+    local curr_work = workStatus.curr_work
+    local flag = true
+    if not block.x then
+        block.x = wsize.ox
+        block.y = wsize.oy
+        block.z = wsize.oz
+        curr_work.dx = 1
+        curr_work.dy = 1
+        curr_work.dz = -1
+        curr_work.cx, curr_work.cy, curr_work.cz = 0,0,0
+        flag = false
+    end
+    -- 搜索下一个可挖掘方块
+    while flag do
+        local bi = map:getPosInfo(block.x,block.y,block.z)
+        if bi then
+            if bi == 1 then
+                break
+            end
+            if curr_work.cz == wsize.lz-1 then
+                curr_work.dz = curr_work.dz*-1
+                -- 工作区域内所有方块被挖完
+            elseif curr_work.cy == wsize.ly-1 then
+                block.z = block.z + curr_work.dz
+                curr_work.cz = curr_work.cz + 1
+                curr_work.dy = curr_work.dy*-1
+                curr_work.cy = 0
+            elseif curr_work.cx == wsize.lx-1 then
+                block.y = block.y + curr_work.dy
+                curr_work.cy = curr_work.cy + 1
+                curr_work.dx = curr_work.dx*-1
+                curr_work.cx = 0
+            else
+                block.x = block.x + curr_work.dx
+                curr_work.cx = curr_work.cx + 1
+            end
+        else
+            -- error
+            break
+        end
+    end
+    return block.x, block.y, block.z
+end
+
 function getLocation()
     local wp = comp.navigation.findWaypoints(512)
     for k,v in pairs(wp) do
@@ -262,6 +275,18 @@ function isExcavable(dir)
         end
     end
     return false
+end
+
+function setTempBlock(x,y,z)
+    table.insert(temp_block_list, {["x"]=x, ["y"]=y, ["z"]=z})
+    map:setPosInfo(x,y,z,1)
+end
+
+function clearTempBlock()
+    for k,v in pairs() do
+        map:setPosInfo(x,y,z,0)
+    end
+    temp_block_list = {}
 end
 
 function receiveMessage(a,b,c,d,e,order)
