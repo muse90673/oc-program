@@ -9,6 +9,7 @@ event = require("event")
 comp = require("component")
 sides = require("sides")
 
+local config = require("config.config")
 local status = ""
 
 --- size:
@@ -23,12 +24,12 @@ local status = ""
 ---   x,y,z
 local workStatus = {}
 workStatus.size={}
-workStatus.size.ox=-5
-workStatus.size.oy=-5
-workStatus.size.oz=-5
-workStatus.size.lx=10
-workStatus.size.ly=10
-workStatus.size.lz=5
+workStatus.size.ox=config.work_area_ox
+workStatus.size.oy=config.work_area_oy
+workStatus.size.oz=config.work_area_oz
+workStatus.size.lx=config.work_area_sx
+workStatus.size.ly=config.work_area_sy
+workStatus.size.lz=config.work_area_sz
 
 workStatus.block={}
 workStatus.curr_work={}
@@ -41,11 +42,13 @@ local listenID
 local pathing = require("util.AstarPathing")
 
 function work()
-    local x,y,z = getNextBlock()
-    local dirs = move(x,y,z)
-    if dirs then
-        if isExcavable(dirs) then
-            comp.robot.swing(dirs)
+    local has_next,x,y,z = getNextBlock()
+    if has_next then
+        local dir = move(x,y,z)
+        if dir then
+            if isExcavable(dir) then
+                comp.robot.swing(dir)
+            end
         end
     end
 end
@@ -57,6 +60,28 @@ end
 ---        如果起点终点重合，返回nil
 ---
 function move(dx,dy,dz)
+
+    local flag,side = pcall(_move,dx,dy,dz)
+    if flag then
+        return side
+    else
+        if string.find(side,"request scan") then
+            -- 扫描地形
+            --local pos
+            --local oz = workStatus.block.z+1
+            --local sx,sy =
+            --for i=1,31 do
+            --    map:getPosInfo()
+            --end
+            print(side)
+        else
+            print(side)
+        end
+        return nil
+    end
+end
+
+function _move(dx,dy,dz)
     local x,y,z = getLocation()
     if x==dx and y==dy and z==dz then
         return nil
@@ -120,6 +145,10 @@ function move(dx,dy,dz)
         end
     end
     return nil
+end
+
+function moveToScan()
+    
 end
 
 function scan()
@@ -201,43 +230,44 @@ function getNextBlock()
     if not block.x then
         block.x = wsize.ox
         block.y = wsize.oy
-        block.z = wsize.oz
+        block.z = 0
         curr_work.dx = 1
         curr_work.dy = 1
         curr_work.dz = -1
-        curr_work.cx, curr_work.cy, curr_work.cz = 0,0,0
+        curr_work.cx, curr_work.cy, curr_work.cz = 1,1,1
         flag = false
     end
     -- 搜索下一个可挖掘方块
     while flag do
         local bi = map:getPosInfo(block.x,block.y,block.z)
         if bi then
-            if bi == 1 then
-                break
-            end
-            if curr_work.cz == wsize.lz-1 then
-                curr_work.dz = curr_work.dz*-1
+            if curr_work.cz == wsize.lz+1 and curr_work.cy == wsize.ly and curr_work.cx == wsize.lx then
                 -- 工作区域内所有方块被挖完
-            elseif curr_work.cy == wsize.ly-1 then
+                return false
+            elseif curr_work.cy == wsize.ly and curr_work.cx == wsize.lx then
                 block.z = block.z + curr_work.dz
                 curr_work.cz = curr_work.cz + 1
                 curr_work.dy = curr_work.dy*-1
-                curr_work.cy = 0
-            elseif curr_work.cx == wsize.lx-1 then
+                curr_work.cy = 1
+                curr_work.cx = 1
+            elseif curr_work.cx == wsize.lx then
                 block.y = block.y + curr_work.dy
                 curr_work.cy = curr_work.cy + 1
                 curr_work.dx = curr_work.dx*-1
-                curr_work.cx = 0
+                curr_work.cx = 1
             else
                 block.x = block.x + curr_work.dx
                 curr_work.cx = curr_work.cx + 1
+            end
+            if bi == 1 then
+                break
             end
         else
             -- error
             break
         end
     end
-    return block.x, block.y, block.z
+    return true, block.x, block.y, block.z
 end
 
 function getLocation()
@@ -293,8 +323,8 @@ function receiveMessage(a,b,c,d,e,order)
     status = order
 end
 
-function printStatus()
-
+function checkStatus()
+    
 end
 
 function run()

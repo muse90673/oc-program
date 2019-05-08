@@ -4,7 +4,8 @@
 --- DateTime: 2019/4/24 10:46
 ---
 
-package.path = "obj\\?.lua;util\\?.lua;"..package.path
+package.path = "obj\\?.lua;util\\?.lua;config\\?.lua;"..package.path
 require("util.robot")
 
-print(move(5,-1,0))
+--print(move(5,-1,0))
+run()

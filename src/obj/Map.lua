@@ -55,6 +55,8 @@ function Map:getChunk(x,y,z)
             return ck
         end
     end
+    -- 请求扫描地图
+    error("request scan")
     return nil
 end
 
