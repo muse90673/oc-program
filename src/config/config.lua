@@ -5,12 +5,17 @@
 ---
 
 local work_config = {}
+-- 工作区域原点坐标
 work_config.work_area_ox = -5
 work_config.work_area_oy = -5
 work_config.work_area_oz = -5
+-- 工作区域大小
 work_config.work_area_sx = 10
 work_config.work_area_sy = 10
 work_config.work_area_sz = 8
-
+-- 开始挖掘的初始z坐标
+work_config.init_z = -1
+-- 公共区域的z轴高度，z轴起点为init_z+1
+work_config.public_sz = 5
 
 return work_config

@@ -4,14 +4,19 @@
 --- DateTime: 2019/4/21 14:45
 ---
 
-thread = require("thread")
-event = require("event")
-comp = require("component")
-sides = require("sides")
+local thread = require("thread")
+local event = require("event")
+local comp = require("component")
+local sides = require("sides")
 
 local config = require("config.config")
-local status = ""
+local map = require("obj.Map")
+local pathing = require("util.AstarPathing")
+pathing.map = map
 
+
+local status = ""
+local listen_id
 --- size:
 ---   ox,lx
 ---   oy,ly
@@ -22,32 +27,39 @@ local status = ""
 ---   dx,dy,dz
 --- curr_pos:
 ---   x,y,z
-local workStatus = {}
-workStatus.size={}
-workStatus.size.ox=config.work_area_ox
-workStatus.size.oy=config.work_area_oy
-workStatus.size.oz=config.work_area_oz
-workStatus.size.lx=config.work_area_sx
-workStatus.size.ly=config.work_area_sy
-workStatus.size.lz=config.work_area_sz
+local work_status = {}
+work_status.size={}
+work_status.size.ox=config.work_area_ox
+work_status.size.oy=config.work_area_oy
+work_status.size.oz=config.work_area_oz
+work_status.size.sx=config.work_area_sx
+work_status.size.sy=config.work_area_sy
+work_status.size.sz=config.work_area_sz
 
-workStatus.block={}
-workStatus.curr_work={}
+work_status.block={}
+work_status.curr_work={}
 
+pathing.work_area=work_status.size
+pathing.public_area={}
+pathing.public_area.ox=config.work_area_ox
+pathing.public_area.oy=config.work_area_oy
+pathing.public_area.oz=config.init_z+1
+pathing.public_area.sx=config.work_area_sx
+pathing.public_area.sy=config.work_area_sy
+pathing.public_area.sz=config.public_sz
 --- 记录临时障碍物
 local temp_block_list = {}
 
-local map = require("obj.Map")
-local listenID
-local pathing = require("util.AstarPathing")
 
 function work()
     local has_next,x,y,z = getNextBlock()
     if has_next then
-        local dir = move(x,y,z)
+        local dir,binfo = move(x,y,z)
         if dir then
             if isExcavable(dir) then
-                comp.robot.swing(dir)
+                if binfo then
+                    comp.robot.swing(dir)
+                end
                 map:setPosInfo(x,y,z,0)
             end
         end
@@ -57,11 +69,11 @@ end
 ---
 --- 机器人移动
 --- 参数dx,dy,dz: 终点坐标
---- 返回值：sides {front, top, down}
----        如果起点终点重合，返回nil
+--- 返回值：sides 返回front, top, down, 如果起点终点重合，返回nil;
+---        block_info 如果从倒数第二个节点移动到终点前被阻挡，返回方块信息，否则nil
 ---
 function move(dx,dy,dz)
-    local x,y,z = getLocation()
+    local x,y,z = getPos()
     if x==dx and y==dy and z==dz then
         return nil
     end
@@ -69,7 +81,7 @@ function move(dx,dy,dz)
     if not map:setPosInfo(x,y,z,0) then
         return nil
     end
-    local paths = pathing.getPath(map,dx,dy,dz,x,y,z,dir,true)
+    local paths = pathing.getPath(dx,dy,dz,x,y,z,dir,true)
     local dir_map = {[2]=1,[3]=3,[4]=2,[5]=0}
     if paths then
         local cdir = dir_map[dir]
@@ -105,8 +117,11 @@ function move(dx,dy,dz)
                 curr_sides = sides.front
             end
             _,binfo = comp.robot.move(curr_sides)
+            if not binfo then
+                setPos(paths[i].x,paths[i].y,paths[i].z)
+            end
             if i==#paths then
-                return curr_sides
+                return curr_sides,binfo
             end
             -- 如果被挡路，尝试挖掉方块,失败则绕路
             if binfo then
@@ -119,7 +134,7 @@ function move(dx,dy,dz)
                     setTempBlock(paths[i].x,paths[i].y,paths[i].z)
                     curr_sides = move(dx,dy,dz)
                     clearTempBlock()
-                    return curr_sides
+                    return curr_sides,binfo
                 end
             end
         end
@@ -128,7 +143,7 @@ function move(dx,dy,dz)
 end
 
 function moveToScan()
-    
+
 end
 
 function scan()
@@ -144,8 +159,8 @@ function scan()
     for iy=scany, y+32-map.girdY, map.girdY do
         for ix=scanx, x+32-map.girdX, map.girdX do
             local flag = false
-            if math.abs(ix-workStatus.size.ox+(map.girdX-workStatus.size.lx)/2) < ((map.girdX+workStatus.size.lx)/2) and
-                    math.abs(iy-workStatus.size.oy+(map.girdY-workStatus.size.ly)/2) < ((map.girdY+workStatus.size.ly)/2) then
+            if math.abs(ix-work_status.size.ox+(map.girdX-work_status.size.sx)/2) < ((map.girdX+work_status.size.sx)/2) and
+                    math.abs(iy-work_status.size.oy+(map.girdY-work_status.size.sy)/2) < ((map.girdY+work_status.size.sy)/2) then
                 for iz=scanz, z+32-map.girdZ, map.girdZ do
                     local cx = ix/map.girdX
                     local cy = iy/map.girdY
@@ -170,7 +185,7 @@ function scan()
                     local cx = ix/map.girdX
                     local cy = iy/map.girdY
                     local cz = sz/map.girdZ
-                    if math.abs(sz-workStatus.size.oz+(map.girdZ-(workStatus.size.lz+ovfZ))/2) < ((map.girdZ+workStatus.size.lz+ovfZ)/2) and
+                    if math.abs(sz-work_status.size.oz+(map.girdZ-(work_status.size.sz +ovfZ))/2) < ((map.girdZ+work_status.size.sz +ovfZ)/2) and
                             not map:hasChunk(cx,cy,cz) then
                         local chunk = {}
                         local index = 0
@@ -203,9 +218,9 @@ end
 --- 返回值：x,y,z 方块坐标
 ---
 function getNextBlock()
-    local block = workStatus.block
-    local wsize = workStatus.size
-    local curr_work = workStatus.curr_work
+    local block = work_status.block
+    local wsize = work_status.size
+    local curr_work = work_status.curr_work
     local flag = true
     if not block.x then
         block.x = wsize.ox
@@ -262,7 +277,14 @@ function getLocation()
     print("get position faild! waypoint \"origin\" not found!")
     return nil
 end
-
+function getPos()
+    return work_status.curr_pos.x, work_status.curr_pos.y, work_status.curr_pos.z
+end
+function setPos(x,y,z)
+    work_status.curr_pos.x = x
+    work_status.curr_pos.y = y
+    work_status.curr_pos.z = z
+end
 ---
 --- 探测方块能否被挖掘
 --- dir:sides {front, top, down}
@@ -271,6 +293,7 @@ end
 function isExcavable(dir)
     local binfo = comp.geolyzer.analyze(dir)
     if binfo then
+        -- 忽略指定的方块{基岩、oc方块}
         local hardness = binfo["hardness"]
         local harvest_tool = binfo["harvestTool"]
         if hardness<10 then
@@ -307,7 +330,9 @@ function checkStatus()
 end
 
 function run()
-    listen_id = event.listen("modem_message",receiveMessage)
+    --listen_id = event.listen("modem_message",receiveMessage)
+    local x,y,z = getLocation()
+    setPos(x,y,z)
     status = "work"
     while true do
         if status=="work" then
@@ -319,5 +344,5 @@ function run()
         end
         os.sleep(0)
     end
-    event.cancel(listen_id)
+    --event.cancel(listen_id)
 end

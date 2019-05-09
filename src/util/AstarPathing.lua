@@ -4,18 +4,21 @@
 --- DateTime: 2019/4/15 11:15
 ---
 
-OpenList = require("obj.OpenList")
-CloseList = require("obj.CloseList")
-PathNode = require("obj.PathNode")
+local OpenList = require("obj.OpenList")
+local CloseList = require("obj.CloseList")
+local PathNode = require("obj.PathNode")
 
-Astar = {}
+local Astar = {}
 
 -- 地图数据
 -- 0:可通行
 -- 1:不可通行(障碍物)
 -- 2:路径点
 Astar.map = nil
-
+-- 工作区域信息
+Astar.work_area = nil
+-- 公共区域信息
+Astar.public_area = nil
 
 Astar.girdX = 8 -- 地图x轴大小
 Astar.girdY = 8 -- 地图y轴大小
@@ -28,7 +31,7 @@ Astar.closeList = nil
 -- ox,oy,oz:起点坐标
 -- dx,dy,dz:终点坐标
 -- dir:方向
-function Astar.getPath(map,ox,oy,oz,dx,dy,dz,dir,reverse)
+function Astar.getPath(ox,oy,oz,dx,dy,dz,dir,reverse)
     -- init
     Astar.map = map
     Astar.openList = OpenList:new()
@@ -113,6 +116,13 @@ end
 --忽略超出地图节点、障碍物节点、在closeList当中的节点
 function Astar.checkNode(node)
     local x,y,z = node.x,node.y,node.z
+    local area = Astar.work_area
+    local parea = Astar.public_area
+    if (x>=area.ox and y>=area.oy and z>=area.oz and x<area.ox+area.sx and y<area.oy+area.sy and z<area.oz+area.sz) or
+            (x>=parea.ox and y>=parea.oy and z>=parea.oz and x<parea.ox+parea.sx and y<parea.oy+parea.sy and z<parea.oz+parea.sz)
+    then
+        return false
+    end
     local ntype = Astar.getPosInfo(x,y,z)
     if not ntype then
         return false

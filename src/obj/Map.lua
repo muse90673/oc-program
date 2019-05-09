@@ -8,12 +8,12 @@ local fs = require("filesystem")
 local seri = require("serialization")
 local Map = {}
 Map.chunk = {}
+-- 记录不存在的地图块
+Map.non_chunk = {}
 Map.girdX = 8
 Map.girdY = 8
 Map.girdZ = 8
----Map.maxX
----Map.maxY
----Map.maxZ
+
 
 function Map:getPosInfo(x,y,z)
     local cx = (x-(x%self.girdX))/self.girdX
@@ -43,7 +43,7 @@ function Map:getChunk(x,y,z)
     -- 查找内存
     -- 如果没有则查找磁盘
     -- 如果没有则请求服务器
-    -- 如果服务器没有，则在map里记录这块地图不存在，寻路结束后清除记录
+    -- 如果服务器没有，则在map里记录这块地图不存在
     local ck = self.chunk[tostring(x+0)..","..tostring(y+0)..","..tostring(z+0)]
     if ck then
         return ck
