@@ -18,9 +18,9 @@ pathing.map = map
 local status = ""
 local listen_id
 --- size:
----   ox,lx
----   oy,ly
----   oz,lz
+---   ox,sx
+---   oy,sy
+---   oz,sz
 --- block:
 ---   x,y,z
 --- curr_work:
@@ -38,6 +38,7 @@ work_status.size.sz=config.work_area_sz
 
 work_status.block={}
 work_status.curr_work={}
+work_status.curr_pos={}
 
 pathing.work_area=work_status.size
 pathing.public_area={}
@@ -234,17 +235,17 @@ function getNextBlock()
     end
     -- 搜索下一个可挖掘方块
     while flag do
-        if curr_work.cz == wsize.lz+1 and curr_work.cy == wsize.ly and curr_work.cx == wsize.lx then
+        if curr_work.cz == wsize.sz+1 and curr_work.cy == wsize.sy and curr_work.cx == wsize.sx then
             -- 工作区域内所有方块被挖完
             break
-        elseif curr_work.cy == wsize.ly and curr_work.cx == wsize.lx then
+        elseif curr_work.cy == wsize.sy and curr_work.cx == wsize.sx then
             block.z = block.z + curr_work.dz
             curr_work.cz = curr_work.cz + 1
             curr_work.dy = curr_work.dy*-1
             curr_work.dx = curr_work.dx*-1
             curr_work.cy = 1
             curr_work.cx = 1
-        elseif curr_work.cx == wsize.lx then
+        elseif curr_work.cx == wsize.sx then
             block.y = block.y + curr_work.dy
             curr_work.cy = curr_work.cy + 1
             curr_work.dx = curr_work.dx*-1
@@ -278,6 +279,11 @@ function getLocation()
     return nil
 end
 function getPos()
+    if work_status.curr_pos.x then
+        local x,y,z = getLocation()
+        setPos(x,y,z)
+        return x,y,z
+    end
     return work_status.curr_pos.x, work_status.curr_pos.y, work_status.curr_pos.z
 end
 function setPos(x,y,z)
@@ -331,7 +337,6 @@ end
 
 function run()
     --listen_id = event.listen("modem_message",receiveMessage)
-    local x,y,z = getLocation()
     setPos(x,y,z)
     status = "work"
     while true do
