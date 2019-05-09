@@ -226,6 +226,7 @@ function getNextBlock()
             block.z = block.z + curr_work.dz
             curr_work.cz = curr_work.cz + 1
             curr_work.dy = curr_work.dy*-1
+            curr_work.dx = curr_work.dx*-1
             curr_work.cy = 1
             curr_work.cx = 1
         elseif curr_work.cx == wsize.lx then
