@@ -12,7 +12,6 @@ local sides = require("sides")
 local config = require("config.config")
 local map = require("obj.Map")
 local pathing = require("util.AstarPathing")
-pathing.map = map
 
 
 local status = ""
@@ -40,14 +39,16 @@ work_status.block={}
 work_status.curr_work={}
 work_status.curr_pos={}
 
-pathing.work_area=work_status.size
-pathing.public_area={}
-pathing.public_area.ox=config.work_area_ox
-pathing.public_area.oy=config.work_area_oy
-pathing.public_area.oz=config.init_z+1
-pathing.public_area.sx=config.work_area_sx
-pathing.public_area.sy=config.work_area_sy
-pathing.public_area.sz=config.public_sz
+local public_area={}
+public_area.ox=config.work_area_ox
+public_area.oy=config.work_area_oy
+public_area.oz=config.init_z+1
+public_area.sx=config.work_area_sx
+public_area.sy=config.work_area_sy
+public_area.sz=config.public_sz
+-- 初始化寻路对象
+pathing.init(map,work_status.size,public_area)
+
 --- 记录临时障碍物
 local temp_block_list = {}
 
@@ -279,7 +280,7 @@ function getLocation()
     return nil
 end
 function getPos()
-    if work_status.curr_pos.x then
+    if not work_status.curr_pos.x then
         local x,y,z = getLocation()
         setPos(x,y,z)
         return x,y,z

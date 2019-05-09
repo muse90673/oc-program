@@ -26,6 +26,12 @@ Astar.girdZ = 8 -- 地图z轴大小
 Astar.openList = nil
 Astar.closeList = nil
 
+function Astar.init(map,work_area,public_area)
+    Astar.map = map
+    Astar.work_area = work_area
+    Astar.public_area = public_area
+end
+
 --获取最短路径
 -- map:地图对象
 -- ox,oy,oz:起点坐标
@@ -118,8 +124,8 @@ function Astar.checkNode(node)
     local x,y,z = node.x,node.y,node.z
     local area = Astar.work_area
     local parea = Astar.public_area
-    if (x>=area.ox and y>=area.oy and z>=area.oz and x<area.ox+area.sx and y<area.oy+area.sy and z<area.oz+area.sz) or
-            (x>=parea.ox and y>=parea.oy and z>=parea.oz and x<parea.ox+parea.sx and y<parea.oy+parea.sy and z<parea.oz+parea.sz)
+    if not ((x>=area.ox and y>=area.oy and z>=area.oz and x<area.ox+area.sx and y<area.oy+area.sy and z<area.oz+area.sz) or
+            (x>=parea.ox and y>=parea.oy and z>=parea.oz and x<parea.ox+parea.sx and y<parea.oy+parea.sy and z<parea.oz+parea.sz))
     then
         return false
     end
